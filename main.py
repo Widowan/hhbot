@@ -4,6 +4,7 @@ import scraper
 import requests
 import pickle
 import yaml
+from datetime import datetime
 from urllib.parse import quote as urlencode
 
 _seen = None
@@ -39,8 +40,8 @@ def main():
     while True:
         r = requests.get(url, headers=headers)
         vacancies = scraper.parse(r.text)
+        seen = get_persistent()
         for vacancy in vacancies:
-            seen = get_persistent()
             if vacancy[0] in seen:
                 break
             seen.append(vacancy[0])
@@ -48,7 +49,6 @@ def main():
             message = f'<a href="{vacancy[4]}"><b>{vacancy[1]}</b> [{vacancy[2]}]</a>' \
                       + f'\n{vacancy[5] if vacancy[5] else "Зарплата не указана"}' \
                       + f'\n\n{vacancy[3]}'
-            print(message)
             send = requests.get(endpoint,
                                 params={
                                     'chat_id': cfg['chat_id'],
@@ -60,6 +60,8 @@ def main():
                 print(send.json())
                 raise ConnectionError
         save_persistent()
+        print(f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] Heartbeat: '
+              f'{len([i for i in vacancies if not i[0] in seen])} new out of {len(vacancies)} vacancies')
         time.sleep(30)
 
 
