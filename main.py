@@ -41,9 +41,11 @@ def main():
         r = requests.get(url, headers=headers)
         vacancies = scraper.parse(r.text)
         seen = get_persistent()
+        new_cnt = 0
         for vacancy in vacancies:
             if vacancy[0] in seen:
                 break
+            new_cnt += 1
             seen.append(vacancy[0])
 
             message = f'<a href="{vacancy[4]}"><b>{vacancy[1]}</b> [{vacancy[2]}]</a>' \
@@ -61,7 +63,7 @@ def main():
                 raise ConnectionError
         save_persistent()
         print(f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] Heartbeat: '
-              f'{len([i for i in vacancies if not i[0] in seen])} new out of {len(vacancies)} vacancies')
+              f'{new_cnt} new out of {len(vacancies)} vacancies')
         time.sleep(30)
 
 
