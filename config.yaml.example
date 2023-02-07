@@ -1,0 +1,5 @@
+tg_token: 123456789:AaAAAAAAAAbBbZz
+search: 'junior java'
+chat_id: 12345678
+# '?!!?' is a template
+url: 'https://hh.ru/search/vacancy?area=1&enable_snippets=true&ored_clusters=true&text=?!!?&order_by=publication_time'
