@@ -7,21 +7,16 @@ import yaml
 from urllib.parse import quote as urlencode
 
 _seen = None
-_conn = None
-
-
-def _get_conn():
-    global _conn
-    _conn = _conn if _conn is not None else open('seen.pickle', 'wb+')
-    return _conn
+_filename = 'seen.pickle'
 
 
 def get_persistent():
     global _seen
     if _seen is None:
         try:
-            _seen = pickle.load(_get_conn())
-        except EOFError:
+            with open(_filename, 'rb') as f:
+                _seen = pickle.load(f)
+        except EOFError or FileNotFoundError:
             _seen = []
             save_persistent()
     return _seen
@@ -31,7 +26,8 @@ def save_persistent():
     global _seen
     if _seen is None:
         raise RuntimeError
-    pickle.dump(_seen, _get_conn())
+    with open(_filename, 'wb+') as f:
+        pickle.dump(_seen, f)
 
 
 def main():
@@ -52,6 +48,7 @@ def main():
             message = f'<a href="{vacancy[4]}"><b>{vacancy[1]}</b> [{vacancy[2]}]</a>' \
                       + f'\n{vacancy[5] if vacancy[5] else "Зарплата не указана"}' \
                       + f'\n\n{vacancy[3]}'
+            print(message)
             send = requests.get(endpoint,
                                 params={
                                     'chat_id': cfg['chat_id'],
