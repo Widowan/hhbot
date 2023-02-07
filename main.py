@@ -17,7 +17,7 @@ def get_persistent():
         try:
             with open(_filename, 'rb') as f:
                 _seen = pickle.load(f)
-        except EOFError or FileNotFoundError:
+        except (EOFError, FileNotFoundError):
             _seen = []
             save_persistent()
     return _seen
