@@ -1,32 +1,27 @@
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse
+import re
+
+html_tag = re.compile('<.*?>')
 
 
-def parse(body: str) -> [(int, str, str, str, str)]:
-    soup = BeautifulSoup(body, 'html.parser')
+def parse(body: dict) -> [(int, str, str, str, str)]:
     vacancies = []
-    for _vacancy in soup.select('div.serp-item'):
-        vacancy = _vacancy.next
-        header = vacancy.next.next
-        href = header.find(class_='serp-item__title')
-        vacancy_full_url = href.get('href')
-        vacancy_id = int(urlparse(vacancy_full_url).path.split('/')[-1])
+    for vacancy in body['items']:
+        vacancy_id = int(vacancy['id'])
+        title = vacancy['name']
+        employer = vacancy['employer']['name']
+        description = '\n\n'.join([i for i in vacancy['snippet'].values() if i is not None]) \
+            if vacancy['snippet'] else ''
+        description = re.sub(html_tag, '', description)
+        url = vacancy['alternate_url']
+        if s := vacancy['salary']:
+            suffix = f'{"р." if s["currency"] == "RUR" else s["currency"]} ' \
+                     f'{"до вычета налогов" if s["gross"] == True else ""}'
+            salary = f'{"от " + str(s["from"]) + " " if s["from"] else ""}{"до " + str(s["to"]) if s["to"] else ""}' \
+                     + suffix
+        else:
+            salary = 'Зарплата не указана'
 
-        vacancy_title = href.text
-        vacancy_employer = header.find('a', {'data-qa': 'vacancy-serp__vacancy-employer'}).text
-        try:
-            vacancy_payment = header.find('span', {'data-qa': 'vacancy-serp__vacancy-compensation'}).text
-        except AttributeError:
-            vacancy_payment = ''
-
-        v_body = _vacancy.find('div', class_='g-user-content')  # .find(class_='vacancy-serp-item__info')
-        try:
-            vacancy_description = v_body.get_text(separator='\n')
-        except AttributeError as e:
-            vacancy_description = ''
-
-        vacancies.append((vacancy_id, vacancy_title, vacancy_employer, vacancy_description, vacancy_full_url,
-                          vacancy_payment))
+        vacancies.append((vacancy_id, title, employer, description, url, salary))
 
     return vacancies
 
@@ -34,11 +29,9 @@ def parse(body: str) -> [(int, str, str, str, str)]:
 def main():
     import requests
 
-    r = requests.get('https://hh.ru/search/vacancy?text=java&area=1',
-                     headers={
-                         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/109.0'})
+    r = requests.get('https://api.hh.ru/vacancies?text=java&area=1', headers={'User-Agent': 'TestBot/0.1'})
     iterated = False
-    vacancies = parse(r.text)
+    vacancies = parse(r.json())
     for vacancy in vacancies:
         iterated = True
         print(f'[{vacancy[0]}] {vacancy[1]} {{{vacancy[2]}}}\n{vacancy[3]}')

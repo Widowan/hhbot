@@ -1,5 +1,6 @@
 tg_token: 123456789:AaAAAAAAAAbBbZz
 search: 'junior java'
 chat_id: 12345678
-# '?!!?' is a template
-url: 'https://hh.ru/search/vacancy?area=1&enable_snippets=true&ored_clusters=true&text=?!!?&order_by=publication_time'
+area_id: 1 # Put "no" or remove entirely to disable. https://api.hh.ru/openapi/redoc#tag/Obshie-spravochniki/operation/get-dictionaries
+sleep_delay_secs: 30
+user_agent: 'TestBot/0.1'

@@ -5,7 +5,6 @@ import requests
 import pickle
 import yaml
 from datetime import datetime
-from urllib.parse import quote as urlencode
 
 _seen = None
 _filename = 'seen.pickle'
@@ -32,43 +31,51 @@ def save_persistent():
 
 
 def main():
-    headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/109.0'}
     cfg = yaml.safe_load(open("config.yaml", "r"))
-    url = cfg['url'].replace('?!!?', urlencode(cfg['search']))
-    endpoint = f'https://api.telegram.org/bot{cfg["tg_token"]}/sendMessage'
-    def timefmt(): return f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}]'
-    delay = 30
+    hh_endpoint = 'https://api.hh.ru/vacancies'  # Contrary to docs, it doesn't require auth
+    headers = {'User-Agent': cfg['user_agent']}
+    data = {'text': cfg['search'], 'order_by': 'publication_time'}
+    try:
+        if area := cfg['area_id']:
+            data['area_id'] = area
+    except KeyError:
+        pass
+
+    telegram_endpoint = f'https://api.telegram.org/bot{cfg["tg_token"]}/sendMessage'
+    def time_fmt(): return f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}]'
 
     connection_errors = 0
     while True:
         # noinspection PyBroadException
         try:
-            r = requests.get(url, headers=headers)
+            r = requests.get(hh_endpoint, headers=headers, data=data)
             connection_errors = 0
         except Exception:
             connection_errors += 1
-            print(f'{timefmt()} #{connection_errors} connection error(s) in a row')
-            if connection_errors > 5:
-                print(f'''{timefmt()} Trying to notify user on telegram: {requests.get(endpoint,
-                        params={
-                            "chat_id": cfg["chat_id"],
-                            "text": "Невозможно подключиться к HH, перезапусти меня!"
-                        }).status_code()}''')
-                quit()
+            print(f'{time_fmt()} #{connection_errors} connection error(s) in a row')
+            if connection_errors > 10:
+                print(f'''{time_fmt()} Trying to notify user on telegram: {requests.get(telegram_endpoint,
+                           params={
+                               "chat_id": cfg["chat_id"],
+                               "text": "Невозможно подключиться к HH, перезапусти меня!"
+                           }).status_code()}''')
+                raise ConnectionError
+            time.sleep(cfg['sleep_delay_secs'])
             continue
-        vacancies = scraper.parse(r.text)
+
+        vacancies = scraper.parse(r.json())
         seen = get_persistent()
-        new_cnt = 0
+        new_vacancies = 0
         for vacancy in vacancies:
             if vacancy[0] in seen:
                 break
-            new_cnt += 1
+            new_vacancies += 1
             seen.append(vacancy[0])
 
             message = f'<a href="{vacancy[4]}"><b>{vacancy[1]}</b> [{vacancy[2]}]</a>' \
                       + f'\n{vacancy[5] if vacancy[5] else "Зарплата не указана"}' \
                       + f'\n\n{vacancy[3]}'
-            send = requests.get(endpoint,
+            send = requests.get(telegram_endpoint,
                                 params={
                                     'chat_id': cfg['chat_id'],
                                     'text': message,
@@ -76,12 +83,13 @@ def main():
                                     'disable_web_page_preview': True,
                                 })
             if send.status_code != 200:
-                print(f'{timefmt()} Error sending to telegram: {send.json()}')
+                print(f'{time_fmt()} Error sending to telegram: {send.json()}')
                 raise ConnectionError
+
         save_persistent()
         print(f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] Heartbeat: '
-              f'{new_cnt} new out of {len(vacancies)} vacancies')
-        time.sleep(30)
+              f'{new_vacancies} new out of {len(vacancies)} vacancies')
+        time.sleep(cfg['sleep_delay_secs'])
 
 
 if __name__ == '__main__':
