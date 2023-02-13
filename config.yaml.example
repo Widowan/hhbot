@@ -7,3 +7,10 @@ sleep_delay_secs: 30
 user_agent: 'TestBot/0.1'
 # https://api.hh.ru/openapi/redoc#tag/Obshie-spravochniki/operation/get-professional-roles-dictionary
 professional_role: 96 # Put "null" or empty value to disable.
+per_page: 20 # Default is 20
+title_blacklist_words: # `[]` if you don't need any
+  - android
+  - fullstack
+  - scala
+  - c++
+  - с++ # Русская С

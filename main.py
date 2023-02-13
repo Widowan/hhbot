@@ -34,14 +34,16 @@ def main():
     cfg = yaml.safe_load(open("config.yaml", "r"))
     hh_endpoint = 'https://api.hh.ru/vacancies'  # Contrary to docs, it doesn't require auth
     headers = {'User-Agent': cfg['user_agent']}
-    data = {'text': cfg['search'], 'order_by': 'publication_time'}
+    data = {'text': cfg['search'], 'order_by': 'publication_time', 'per_page': cfg['per_page']}
     if area := cfg['area_id']:
         data['area_id'] = area
     if role := cfg['professional_role']:
         data['professional_role'] = role
 
     telegram_endpoint = f'https://api.telegram.org/bot{cfg["tg_token"]}/sendMessage'
-    def time_fmt(): return f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}]'
+
+    def time_fmt():
+        return f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}]'
 
     connection_errors = 0
     while True:
@@ -54,10 +56,10 @@ def main():
             print(f'{time_fmt()} #{connection_errors} connection error(s) in a row')
             if connection_errors > 10:
                 print(f'''{time_fmt()} Trying to notify user on telegram: {requests.get(telegram_endpoint,
-                           params={
-                               "chat_id": cfg["chat_id"],
-                               "text": "Невозможно подключиться к HH, перезапусти меня!"
-                           }).status_code()}''')
+                            params={
+                                "chat_id": cfg["chat_id"],
+                                "text": "Невозможно подключиться к HH, перезапусти меня!"
+                            }).status_code()}''')
                 raise ConnectionError
             time.sleep(cfg['sleep_delay_secs'])
             continue
@@ -66,8 +68,9 @@ def main():
         seen = get_persistent()
         new_vacancies = 0
         for vacancy in vacancies:
-            if vacancy[0] in seen:
-                break
+            if (vacancy[0] in seen) or \
+                    any([i.lower() in vacancy[1].lower() for i in cfg['title_blacklist_words']]):
+                continue
             new_vacancies += 1
             seen.append(vacancy[0])
 
