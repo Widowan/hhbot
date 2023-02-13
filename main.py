@@ -67,30 +67,33 @@ def main():
         vacancies = scraper.parse(r.json())
         seen = get_persistent()
         new_vacancies = 0
+        blacklisted = 0
         for vacancy in vacancies:
-            if (vacancy[0] in seen) or \
-                    any([i.lower() in vacancy[1].lower() for i in cfg['title_blacklist_words']]):
+            if vacancy[0] in seen:
+                continue
+            if any([i.lower() in vacancy[1].lower() for i in cfg['title_blacklist_words']]):
+                blacklisted += 1
                 continue
             new_vacancies += 1
             seen.append(vacancy[0])
 
-            message = f'<a href="{vacancy[4]}"><b>{vacancy[1]}</b> [{vacancy[2]}]</a>' \
-                      + f'\n{vacancy[5] if vacancy[5] else "Зарплата не указана"}' \
-                      + f'\n\n{vacancy[3]}'
-            send = requests.get(telegram_endpoint,
-                                params={
-                                    'chat_id': cfg['chat_id'],
-                                    'text': message,
-                                    'parse_mode': 'HTML',
-                                    'disable_web_page_preview': True,
-                                })
-            if send.status_code != 200:
-                print(f'{time_fmt()} Error sending to telegram: {send.json()}')
-                raise ConnectionError
+            # message = f'<a href="{vacancy[4]}"><b>{vacancy[1]}</b> [{vacancy[2]}]</a>' \
+            #           + f'\n{vacancy[5] if vacancy[5] else "Зарплата не указана"}' \
+            #           + f'\n\n{vacancy[3]}'
+            # send = requests.get(telegram_endpoint,
+            #                     params={
+            #                         'chat_id': cfg['chat_id'],
+            #                         'text': message,
+            #                         'parse_mode': 'HTML',
+            #                         'disable_web_page_preview': True,
+            #                     })
+            # if send.status_code != 200:
+            #     print(f'{time_fmt()} Error sending to telegram: {send.json()}')
+            #     raise ConnectionError
 
         save_persistent()
         print(f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] Heartbeat: '
-              f'{new_vacancies} new out of {len(vacancies)} vacancies')
+              f'{new_vacancies} new ({blacklisted} blacklisted) out of {len(vacancies)} vacancies')
         time.sleep(cfg['sleep_delay_secs'])
 
 
