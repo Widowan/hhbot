@@ -14,7 +14,7 @@ def parse(body: dict) -> [(int, str, str, str, str)]:
         description = re.sub(html_tag, '', description)
         url = vacancy['alternate_url']
         if s := vacancy['salary']:
-            suffix = f'{"р." if s["currency"] == "RUR" else s["currency"]} ' \
+            suffix = f'{" р." if s["currency"] == "RUR" else (" " + s["currency"])} ' \
                      f'{"до вычета налогов" if s["gross"] == True else ""}'
             salary = f'{"от " + str(s["from"]) + " " if s["from"] else ""}{"до " + str(s["to"]) if s["to"] else ""}' \
                      + suffix

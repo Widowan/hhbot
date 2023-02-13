@@ -35,11 +35,10 @@ def main():
     hh_endpoint = 'https://api.hh.ru/vacancies'  # Contrary to docs, it doesn't require auth
     headers = {'User-Agent': cfg['user_agent']}
     data = {'text': cfg['search'], 'order_by': 'publication_time'}
-    try:
-        if area := cfg['area_id']:
-            data['area_id'] = area
-    except KeyError:
-        pass
+    if area := cfg['area_id']:
+        data['area_id'] = area
+    if role := cfg['professional_role']:
+        data['professional_role'] = role
 
     telegram_endpoint = f'https://api.telegram.org/bot{cfg["tg_token"]}/sendMessage'
     def time_fmt(): return f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}]'
