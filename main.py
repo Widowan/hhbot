@@ -71,11 +71,11 @@ def main():
         for vacancy in vacancies:
             if vacancy[0] in seen:
                 continue
+            seen.append(vacancy[0])
             if any([i.lower() in vacancy[1].lower() for i in cfg['title_blacklist_words']]):
                 blacklisted += 1
                 continue
             new_vacancies += 1
-            seen.append(vacancy[0])
 
             message = f'<a href="{vacancy[4]}"><b>{vacancy[1]}</b> [{vacancy[2]}]</a>' \
                       + f'\n{vacancy[5] if vacancy[5] else "Зарплата не указана"}' \
@@ -93,7 +93,7 @@ def main():
 
         save_persistent()
         print(f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] Heartbeat: '
-              f'{new_vacancies} new ({blacklisted} blacklisted) out of {len(vacancies)} vacancies')
+              f'{new_vacancies} new ({blacklisted} new blacklisted) out of {len(vacancies)} vacancies')
         time.sleep(cfg['sleep_delay_secs'])
 
 
