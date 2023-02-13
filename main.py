@@ -36,9 +36,26 @@ def main():
     cfg = yaml.safe_load(open("config.yaml", "r"))
     url = cfg['url'].replace('?!!?', urlencode(cfg['search']))
     endpoint = f'https://api.telegram.org/bot{cfg["tg_token"]}/sendMessage'
+    def timefmt(): return f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}]'
+    delay = 30
 
+    connection_errors = 0
     while True:
-        r = requests.get(url, headers=headers)
+        # noinspection PyBroadException
+        try:
+            r = requests.get(url, headers=headers)
+            connection_errors = 0
+        except Exception:
+            connection_errors += 1
+            print(f'{timefmt()} #{connection_errors} connection error(s) in a row')
+            if connection_errors > 5:
+                print(f'''{timefmt()} Trying to notify user on telegram: {requests.get(endpoint,
+                        params={
+                            "chat_id": cfg["chat_id"],
+                            "text": "Невозможно подключиться к HH, перезапусти меня!"
+                        }).status_code()}''')
+                quit()
+            continue
         vacancies = scraper.parse(r.text)
         seen = get_persistent()
         new_cnt = 0
@@ -59,7 +76,7 @@ def main():
                                     'disable_web_page_preview': True,
                                 })
             if send.status_code != 200:
-                print(send.json())
+                print(f'{timefmt()} Error sending to telegram: {send.json()}')
                 raise ConnectionError
         save_persistent()
         print(f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}] Heartbeat: '
