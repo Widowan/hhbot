@@ -5,6 +5,7 @@ import requests
 import pickle
 import yaml
 from datetime import datetime
+from utils import time_fmt
 
 _seen = None
 _filename = 'seen.pickle'
@@ -41,9 +42,6 @@ def main():
         data['professional_role'] = role
 
     telegram_endpoint = f'https://api.telegram.org/bot{cfg["tg_token"]}/sendMessage'
-
-    def time_fmt():
-        return f'[{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}]'
 
     connection_errors = 0
     while True:
